@@ -61,6 +61,9 @@ def initialize_client():
                         }
                     }
                 }
+            },
+            {
+                "type": "code_interpreter",
             }
         ],
     )
@@ -92,7 +95,8 @@ def prompt(req: func.HttpRequest) -> func.HttpResponse:
     logging.info(f"Created message, message ID: {message.id}")
 
     # Run the agent
-    run = project_client.agents.create_run(thread_id=thread.id, assistant_id=agent.id)
+    run = project_client.agents.create_run(thread_id=thread.id, agent_id=agent.id)
+
     # Monitor and process the run status
     while run.status in ["queued", "in_progress", "requires_action"]:
         time.sleep(1)
@@ -107,19 +111,27 @@ def prompt(req: func.HttpRequest) -> func.HttpResponse:
         logging.error(f"Run failed: {run.last_error}")
 
     # Get messages from the assistant thread
-    messages = project_client.agents.get_messages(thread_id=thread.id)
-    logging.info(f"Messages: {messages}")
+    messages = project_client.agents.list_messages(thread_id=thread.id)
+    logging.info(f"Messages: {messages.data}")
 
     # Get the last message from the assistant
-    last_msg = messages.get_last_text_message_by_sender("assistant")
+    last_msg = next(
+        (msg for msg in reversed(messages.data) if msg.role == "assistant"), None
+    )
     if last_msg:
-        logging.info(f"Last Message: {last_msg.text.value}")
-
+        logging.info(f"Last Agent Message: {last_msg}")
+        if last_msg.content and len(last_msg.content) > 0 and last_msg.content[0].type == "text":
+            last_msg_txt = last_msg.content[0].text
+        else:
+            last_msg_txt = "No valid text message received: {last_msg.content}"
+    else:
+        last_msg_txt = "No messages received from the agent, raw resopnse: {messages.data}"    
+    logging.info(f"Last Agent Text Message: {last_msg_txt}")
     # Delete the agent once done
     project_client.agents.delete_agent(agent.id)
     print("Deleted agent")
 
-    return func.HttpResponse(last_msg.text.value)
+    return func.HttpResponse(last_msg_txt.value)
 
 # Function to get the weather
 @app.function_name(name="GetWeather")

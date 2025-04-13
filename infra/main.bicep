@@ -6,13 +6,13 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources')
-@allowed(['eastus', 'westus2'])
+@allowed(['eastus', 'eastus2', 'westus2'])
 @metadata({
   azd: {
     type: 'location'
   }
 })
-param location string = 'eastus'
+param location string
 
 @description('Skip the creation of the virtual network and private endpoint')
 param skipVnet bool = true
@@ -90,7 +90,7 @@ param modelSkuName string = 'GlobalStandard'
 param modelCapacity int = 50
 
 @description('Model deployment location. If you want to deploy an Azure AI resource/model in different location than the rest of the resources created.')
-param modelLocation string = 'eastus'
+param modelLocation string = 'eastus2'
 
 @description('The AI Service Account full ARM Resource ID. This is an optional field, and if not provided, the resource will be created.')
 param aiServiceAccountResourceId string = ''
